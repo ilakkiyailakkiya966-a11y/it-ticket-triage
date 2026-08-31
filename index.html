@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IT Ticket Triage</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+        h1 { color: #2c3e50; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; }
+        .who { font-size: 14px; color: #666; }
+        .who a { color: #c0392b; margin-left: 10px; }
+        .ticket { border: 1px solid #ddd; border-radius: 8px; padding: 15px; margin-bottom: 12px; }
+        .ticket h3 { margin: 0 0 6px 0; }
+        .meta { font-size: 14px; color: #666; }
+        .btn { display: inline-block; background: #2c3e50; color: white; padding: 10px 16px;
+               border-radius: 6px; text-decoration: none; margin-bottom: 20px; border: none; cursor: pointer; }
+        .empty { color: #999; }
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; color: white; }
+        .High { background: #e74c3c; }
+        .Medium { background: #f39c12; }
+        .Low { background: #27ae60; }
+        .stats { display: flex; gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: #f4f6f7; border-radius: 8px; padding: 12px 18px; text-align: center; flex: 1; }
+        .stat-box .num { font-size: 24px; font-weight: bold; color: #2c3e50; }
+        .stat-box .label { font-size: 12px; color: #666; }
+        .reasoning { font-size: 13px; color: #888; font-style: italic; margin-top: 6px; }
+        .status-form { margin-top: 10px; }
+        select { padding: 4px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>🎫 IT Ticket Triage</h1>
+        <div class="who">
+            Logged in as <strong>{{ session["username"] }}</strong>
+            ({{ "IT Staff" if session["role"] == "it_staff" else "Employee" }})
+            <a href="/logout">Log out</a>
+        </div>
+    </div>
+
+   {% if session["role"] != "it_staff" %}
+<a class="btn" href="/new">+ Submit New Ticket</a>
+{% endif %}
+
+    <div class="stats">
+        <div class="stat-box"><div class="num">{{ stats.total }}</div><div class="label">Total Tickets</div></div>
+        <div class="stat-box"><div class="num">{{ stats.open }}</div><div class="label">Open</div></div>
+        <div class="stat-box"><div class="num">{{ stats.high }}</div><div class="label">High Priority</div></div>
+    </div>
+
+    {% if tickets|length == 0 %}
+        <p class="empty">No tickets yet. Submit one to get started!</p>
+    {% endif %}
+
+    {% for ticket in tickets %}
+        <div class="ticket">
+            <h3>{{ ticket["title"] }}</h3>
+            <p>{{ ticket["description"] }}</p>
+            <div class="meta">
+                Category: {{ ticket["category"] or "Not classified yet" }} |
+                Urgency:
+                {% if ticket["urgency"] %}
+                    <span class="badge {{ ticket['urgency'] }}">{{ ticket["urgency"] }}</span>
+                {% else %}
+                    Not classified yet
+                {% endif %}
+                | Status: {{ ticket["status"] }}
+            </div>
+            {% if ticket["reasoning"] %}
+            <div class="reasoning">🤖 {{ ticket["reasoning"] }}</div>
+            {% endif %}
+
+            {% if session["role"] == "it_staff" %}
+            <form class="status-form" method="POST" action="/update-status/{{ ticket['id'] }}">
+                <select name="status" onchange="this.form.submit()">
+                    <option value="Open" {% if ticket["status"] == "Open" %}selected{% endif %}>Open</option>
+                    <option value="In Progress" {% if ticket["status"] == "In Progress" %}selected{% endif %}>In Progress</option>
+                    <option value="Resolved" {% if ticket["status"] == "Resolved" %}selected{% endif %}>Resolved</option>
+                </select>
+            </form>
+            {% endif %}
+        </div>
+    {% endfor %}
+</body>
+</html>
