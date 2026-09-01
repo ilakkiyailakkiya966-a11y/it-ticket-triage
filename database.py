@@ -55,11 +55,12 @@ def add_ticket(title, description, submitted_by, category=None, urgency=None, re
     conn.close()
 
 
-def get_all_tickets(user_id=None):
+def get_all_tickets(user_id=None, search=None, category=None, status=None):
     """
     Fetches tickets, most urgent first, then newest first.
     If user_id is given, only returns tickets submitted by that user (for employees).
     If user_id is None, returns ALL tickets (for IT staff).
+    Optional filters: search (matches title/description), category, status.
     """
     conn = get_connection()
     cursor = conn.cursor(row_factory=dict_row)
@@ -75,13 +76,33 @@ def get_all_tickets(user_id=None):
         FROM tickets
     """
 
-    if user_id is not None:
-        base_query += " WHERE submitted_by = %s ORDER BY urgency_rank ASC, created_at DESC"
-        cursor.execute(base_query, (user_id,))
-    else:
-        base_query += " ORDER BY urgency_rank ASC, created_at DESC"
-        cursor.execute(base_query)
+    conditions = []
+    params = []
 
+    if user_id is not None:
+        conditions.append("submitted_by = %s")
+        params.append(user_id)
+
+    if search:
+        conditions.append("(title ILIKE %s OR description ILIKE %s)")
+        like_pattern = f"%{search}%"
+        params.append(like_pattern)
+        params.append(like_pattern)
+
+    if category:
+        conditions.append("category = %s")
+        params.append(category)
+
+    if status:
+        conditions.append("status = %s")
+        params.append(status)
+
+    if conditions:
+        base_query += " WHERE " + " AND ".join(conditions)
+
+    base_query += " ORDER BY urgency_rank ASC, created_at DESC"
+
+    cursor.execute(base_query, params)
     tickets = cursor.fetchall()
     cursor.close()
     conn.close()
