@@ -25,6 +25,11 @@
         .reasoning { font-size: 13px; color: #888; font-style: italic; margin-top: 6px; }
         .status-form { margin-top: 10px; }
         select { padding: 4px; border-radius: 4px; }
+        .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-bar input[type="text"] { padding: 8px; border: 1px solid #ccc; border-radius: 6px; flex: 1; min-width: 180px; }
+        .filter-bar select { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        .filter-bar button { background: #2c3e50; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+        .filter-bar .clear { background: #eee; color: #333; padding: 8px 14px; border-radius: 6px; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -37,15 +42,35 @@
         </div>
     </div>
 
-   {% if session["role"] != "it_staff" %}
-<a class="btn" href="/new">+ Submit New Ticket</a>
-{% endif %}
+    {% if session["role"] != "it_staff" %}
+    <a class="btn" href="/new">+ Submit New Ticket</a>
+    {% endif %}
 
     <div class="stats">
         <div class="stat-box"><div class="num">{{ stats.total }}</div><div class="label">Total Tickets</div></div>
         <div class="stat-box"><div class="num">{{ stats.open }}</div><div class="label">Open</div></div>
         <div class="stat-box"><div class="num">{{ stats.high }}</div><div class="label">High Priority</div></div>
     </div>
+
+    <form class="filter-bar" method="GET" action="/">
+        <input type="text" name="search" placeholder="Search title or description..." value="{{ search }}">
+        <select name="category">
+            <option value="">All Categories</option>
+            {% for c in ["Network", "Hardware", "Software", "Account", "Other"] %}
+                <option value="{{ c }}" {% if category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+        <select name="status">
+            <option value="">All Statuses</option>
+            {% for s in ["Open", "In Progress", "Resolved"] %}
+                <option value="{{ s }}" {% if status == s %}selected{% endif %}>{{ s }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Filter</button>
+        {% if search or category or status %}
+            <a class="clear" href="/">Clear</a>
+        {% endif %}
+    </form>
 
     {% if tickets|length == 0 %}
         <p class="empty">No tickets yet. Submit one to get started!</p>
@@ -65,9 +90,9 @@
                 {% endif %}
                 | Status: {{ ticket["status"] }}
             </div>
-            {% if ticket["reasoning"] %}
-            <div class="reasoning">🤖 {{ ticket["reasoning"] }}</div>
-            {% endif %}
+           {% if ticket["reasoning"] and session["role"] == "it_staff" %}
+<div class="reasoning">🤖 {{ ticket["reasoning"] }}</div>
+{% endif %}
 
             {% if session["role"] == "it_staff" %}
             <form class="status-form" method="POST" action="/update-status/{{ ticket['id'] }}">
