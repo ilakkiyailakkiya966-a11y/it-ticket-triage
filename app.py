@@ -87,15 +87,23 @@ def home():
     """
     Employees see only their own tickets.
     IT staff see everyone's tickets.
+    Supports optional ?search=&category=&status= query params for filtering.
     """
+    search = request.args.get("search", "").strip() or None
+    category = request.args.get("category", "").strip() or None
+    status = request.args.get("status", "").strip() or None
+
     if session["role"] == "it_staff":
-        tickets = get_all_tickets()
+        tickets = get_all_tickets(search=search, category=category, status=status)
         stats = get_stats()
     else:
-        tickets = get_all_tickets(user_id=session["user_id"])
+        tickets = get_all_tickets(user_id=session["user_id"], search=search, category=category, status=status)
         stats = get_stats(user_id=session["user_id"])
 
-    return render_template("index.html", tickets=tickets, stats=stats)
+    return render_template(
+        "index.html", tickets=tickets, stats=stats,
+        search=search or "", category=category or "", status=status or ""
+    )
 
 
 @app.route("/new", methods=["GET", "POST"])
